@@ -1,31 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="bts.dm.labs.com.bts_tracer">
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+          package="bts.dm.labs.com.bts_tracer">
+
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
 
     <application
-        android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
-        android:supportsRtl="true"
-        android:theme="@style/AppTheme">
-        <activity
-            android:name=".MainActivity"
+            android:allowBackup="true"
+            android:icon="@mipmap/ic_launcher"
             android:label="@string/app_name"
-            android:icon="@drawable/ic_app"
-            android:theme="@style/AppTheme.NoActionBar">
+            android:supportsRtl="true"
+            android:theme="@style/AppTheme">
+        <activity
+                android:name=".MainActivity"
+                android:icon="@drawable/ic_app"
+                android:label="@string/app_name"
+                android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
+                <action android:name="android.intent.action.MAIN"/>
 
-                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
 
-        <receiver
-            android:name=".CellInfoBroadcastReceiver"
-            android:enabled="true"
-            android:exported="true"></receiver>
+        <service
+                android:name=".BtsService"
+                android:enabled="true"
+                android:exported="true">
+        </service>
     </application>
 
 </manifest>
