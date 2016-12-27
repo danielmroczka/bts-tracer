@@ -17,7 +17,7 @@ public class BtsService extends Service {
     @Override
     public void onStart(Intent i, int startId) {
         super.onStart(i, startId);
-        notification = buildNotify("");
+        notification = buildNotify("Start service");
         startForeground(123, notification);
     }
 

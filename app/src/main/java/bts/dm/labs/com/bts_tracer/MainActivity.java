@@ -1,14 +1,20 @@
 package bts.dm.labs.com.bts_tracer;
 
+import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.telephony.CellInfo;
 import android.telephony.CellLocation;
 import android.telephony.PhoneStateListener;
+import android.telephony.SignalStrength;
 import android.telephony.TelephonyManager;
 import android.telephony.cdma.CdmaCellLocation;
 import android.telephony.gsm.GsmCellLocation;
@@ -20,11 +26,15 @@ import android.widget.TextView;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
+
+import bts.dm.labs.com.bts_tracer.entity.DBManager;
 
 import static android.telephony.PhoneStateListener.LISTEN_NONE;
 
 public class MainActivity extends AppCompatActivity {
-
+    private DBManager db;
+    private boolean active = true;
     private MyPhoneStateListener listener;
 
     @Override
@@ -34,29 +44,70 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        db = DBManager.getInstance(getApplicationContext());
+
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
+                active = !active;
+                if (active) {
+                    register();
+                } else {
+                    unregister();
+                }
+                Snackbar.make(view, active ? "Start recording" : "Stop recording", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
             }
         });
-
-        final TelephonyManager telManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-        int events = PhoneStateListener.LISTEN_CELL_LOCATION;
-        listener = new MyPhoneStateListener();
-        telManager.listen(listener, events);
-
+        checkPermission();
+        init();
+        register();
         Intent serviceIntent = new Intent(this, BtsService.class);
         startService(serviceIntent);
+    }
+
+    private void init() {
+        TelephonyManager manager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+        log("Operator: " + manager.getNetworkOperatorName() +
+                        "(" + manager.getNetworkCountryIso() + ")" +
+                        "\nSIM operator: " + manager.getSimOperatorName() +
+                        "(" + manager.getSimCountryIso() + ")" +
+                        "\nPhone no: " + manager.getLine1Number()
+
+                , false);
+    }
+
+    private void register() {
+        final TelephonyManager telManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+        listener = new MyPhoneStateListener();
+        int events = PhoneStateListener.LISTEN_CELL_LOCATION | PhoneStateListener.LISTEN_SIGNAL_STRENGTHS | PhoneStateListener.LISTEN_CELL_INFO;
+        telManager.listen(listener, events);
+    }
+
+    private void unregister() {
+        final TelephonyManager telManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+        telManager.listen(listener, LISTEN_NONE);
+    }
+
+    private void checkPermission() {
+        //TODO for Marshmallow:
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_COARSE_LOCATION)) {
+            } else {
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, 1);
+            }
+        }
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        final TelephonyManager telManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-        telManager.listen(listener, LISTEN_NONE);
+        unregister();
+        Intent serviceIntent = new Intent(this, BtsService.class);
+        stopService(serviceIntent);
     }
 
     @Override
@@ -72,6 +123,10 @@ public class MainActivity extends AppCompatActivity {
         if (id == R.id.action_settings) {
             return true;
         }
+        if (id == R.id.action_exit) {
+            finish();
+            return true;
+        }
 
         return super.onOptionsItemSelected(item);
     }
@@ -82,14 +137,49 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onCellLocationChanged(CellLocation location) {
             super.onCellLocationChanged(location);
-            final TextView view = (TextView) findViewById(R.id.view);
-            SimpleDateFormat formatter = new SimpleDateFormat("hh:mm:ss sss");
+            log(getCellInfo(MainActivity.this));
+        }
+
+        @Override
+        public void onSignalStrengthsChanged(SignalStrength signalStrength) {
+            super.onSignalStrengthsChanged(signalStrength);
+            int signalStrengthValue;
+            if (signalStrength.isGsm()) {
+                if (signalStrength.getGsmSignalStrength() != 99) {
+                    signalStrengthValue = signalStrength.getGsmSignalStrength() * 2 - 113;
+                } else {
+                    signalStrengthValue = signalStrength.getGsmSignalStrength();
+                }
+            } else {
+                signalStrengthValue = signalStrength.getCdmaDbm();
+            }
+            log("RSSI= " + signalStrengthValue + "dBm");
+        }
+
+        @Override
+        public void onCellInfoChanged(List<CellInfo> cellInfo) {
+            super.onCellInfoChanged(cellInfo);
+
+            if (cellInfo != null) {
+                log("cell info : " + cellInfo.size());
+            }
+        }
+    }
+
+    private void log(String text) {
+        log(text, true);
+    }
+
+    private void log(String text, boolean timestamp) {
+        final TextView view = (TextView) findViewById(R.id.view);
+        if (timestamp) {
+            SimpleDateFormat formatter = new SimpleDateFormat("HH:mm:ss");
             formatter.format(new Date());
             view.append(formatter.format(new Date()));
             view.append("\t");
-            view.append(getCellInfo(MainActivity.this));
-            view.append("\n");
         }
+        view.append(text);
+        view.append("\n");
     }
 
     public static String getCellInfo(Context context) {
