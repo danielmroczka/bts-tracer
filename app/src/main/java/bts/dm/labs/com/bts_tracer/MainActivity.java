@@ -61,10 +61,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         checkPermission();
-        init();
-        register();
-        Intent serviceIntent = new Intent(this, BtsService.class);
-        startService(serviceIntent);
+
     }
 
     private void init() {
@@ -93,14 +90,50 @@ public class MainActivity extends AppCompatActivity {
     private void checkPermission() {
         //TODO for Marshmallow:
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE)
                 != PackageManager.PERMISSION_GRANTED) {
 
-            if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_COARSE_LOCATION)) {
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_PHONE_STATE)) {
+
             } else {
-                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, 1);
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_PHONE_STATE}, 124);
             }
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_COARSE_LOCATION)) {
+
+            } else {
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, 123);
+            }
+
+        } else {
+            onInit();
         }
     }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case 123:
+            case 124: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                    onInit();
+
+                } else {
+                }
+                return;
+            }
+
+        }
+    }
+
+    private void onInit() {
+        init();
+        register();
+        Intent serviceIntent = new Intent(this, BtsService.class);
+        startService(serviceIntent);
+    }
+
 
     @Override
     protected void onDestroy() {
