@@ -1,12 +1,9 @@
-package bts.dm.labs.com.bts_tracer;
+package com.labs.dm.bts;
 
 import android.content.Context;
 import android.content.Intent;
 import android.telephony.CellLocation;
 import android.telephony.PhoneStateListener;
-import android.widget.TextView;
-
-import java.util.Date;
 
 /**
  * Created by daniel on 2016-12-26.
