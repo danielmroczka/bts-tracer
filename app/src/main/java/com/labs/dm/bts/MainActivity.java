@@ -31,8 +31,6 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
-import bts.dm.labs.com.bts_tracer.R;
-
 import static android.telephony.PhoneStateListener.LISTEN_NONE;
 
 public class MainActivity extends AppCompatActivity {
@@ -78,9 +76,11 @@ public class MainActivity extends AppCompatActivity {
                 , false);
     }
 
+    long recordId;
+
     private void register() {
         final TelephonyManager telManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-        long recordId = db.createRecord();
+        recordId = db.createRecord();
         listener = new MyPhoneStateListener(recordId);
         int events = PhoneStateListener.LISTEN_CELL_LOCATION | PhoneStateListener.LISTEN_SIGNAL_STRENGTHS | PhoneStateListener.LISTEN_CELL_INFO;
         telManager.listen(listener, events);
@@ -164,10 +164,16 @@ public class MainActivity extends AppCompatActivity {
             finish();
             return true;
         }
-
+        if (id == R.id.action_upload) {
+            if (recordId >= 0) {
+                Intent serviceIntent = new Intent(MainActivity.this, UploadService.class);
+                serviceIntent.putExtra("recordId", recordId);
+                startService(serviceIntent);
+            }
+            return true;
+        }
         return super.onOptionsItemSelected(item);
     }
-
 
     private class MyPhoneStateListener extends PhoneStateListener {
 
@@ -244,6 +250,6 @@ public class MainActivity extends AppCompatActivity {
             cid = ((CdmaCellLocation) tel.getCellLocation()).getBaseStationId();
         }
 
-        return new Cell(mcc, mnc, lac, cid);//String.format("CID: %s, LAC: %s", cid, lac);
+        return new Cell(mcc, mnc, lac, cid);
     }
 }

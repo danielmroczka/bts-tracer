@@ -6,7 +6,6 @@ import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
 
-import bts.dm.labs.com.bts_tracer.R;
 
 public class BtsService extends Service {
 

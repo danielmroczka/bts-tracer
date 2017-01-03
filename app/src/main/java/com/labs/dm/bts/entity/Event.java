@@ -8,6 +8,7 @@ public class Event {
 
     public static final String NAME = "EVENT";
 
+    private Cell cell;
     private long id;
     private long timestamp;
     private long cellId;
@@ -17,6 +18,11 @@ public class Event {
         this.timestamp = timestamp;
         this.cellId = cellId;
         this.recordId = recordId;
+    }
+
+    public Event(long timestamp, Cell cell) {
+        this.timestamp = timestamp;
+        this.cell = cell;
     }
 
     public void setId(long id) {
@@ -37,5 +43,9 @@ public class Event {
 
     public long getRecordId() {
         return recordId;
+    }
+
+    public Cell getCell() {
+        return cell;
     }
 }
