@@ -1,4 +1,4 @@
-package bts.dm.labs.com.bts_tracer;
+package com.labs.dm.bts;
 
 import android.Manifest;
 import android.content.Context;
@@ -24,11 +24,12 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
 
+import com.labs.dm.bts.entity.Cell;
+import com.labs.dm.bts.entity.DBManager;
+
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
-
-import bts.dm.labs.com.bts_tracer.entity.DBManager;
 
 import static android.telephony.PhoneStateListener.LISTEN_NONE;
 
@@ -75,9 +76,12 @@ public class MainActivity extends AppCompatActivity {
                 , false);
     }
 
+    long recordId;
+
     private void register() {
         final TelephonyManager telManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-        listener = new MyPhoneStateListener();
+        recordId = db.createRecord();
+        listener = new MyPhoneStateListener(recordId);
         int events = PhoneStateListener.LISTEN_CELL_LOCATION | PhoneStateListener.LISTEN_SIGNAL_STRENGTHS | PhoneStateListener.LISTEN_CELL_INFO;
         telManager.listen(listener, events);
     }
@@ -165,17 +169,31 @@ public class MainActivity extends AppCompatActivity {
             finish();
             return true;
         }
-
+        if (id == R.id.action_upload) {
+            if (recordId >= 0) {
+                Intent serviceIntent = new Intent(MainActivity.this, UploadService.class);
+                serviceIntent.putExtra("recordId", recordId);
+                startService(serviceIntent);
+            }
+            return true;
+        }
         return super.onOptionsItemSelected(item);
     }
 
-
     private class MyPhoneStateListener extends PhoneStateListener {
+
+        private long recordId;
+
+        public MyPhoneStateListener(long recordId) {
+            this.recordId = recordId;
+        }
 
         @Override
         public void onCellLocationChanged(CellLocation location) {
             super.onCellLocationChanged(location);
-            log(getCellInfo(MainActivity.this));
+            Cell cell = getCellInfo(MainActivity.this);
+            db.createEvent(recordId, cell);
+            log(String.format("CID: %s, LAC: %s", cell.getCid(), cell.getLac()));
         }
 
         @Override
@@ -220,7 +238,7 @@ public class MainActivity extends AppCompatActivity {
         view.append("\n");
     }
 
-    public static String getCellInfo(Context context) {
+    public static Cell getCellInfo(Context context) {
         final TelephonyManager tel = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
         int mnc = 0, mcc = 0, lac = 0, cid = 0;
         String networkOperator = tel.getNetworkOperator();
@@ -237,6 +255,6 @@ public class MainActivity extends AppCompatActivity {
             cid = ((CdmaCellLocation) tel.getCellLocation()).getBaseStationId();
         }
 
-        return String.format("CID: %s, LAC: %s", cid, lac);
+        return new Cell(mcc, mnc, lac, cid);
     }
 }
