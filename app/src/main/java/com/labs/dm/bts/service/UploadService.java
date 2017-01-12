@@ -2,7 +2,6 @@ package com.labs.dm.bts.service;
 
 import android.app.IntentService;
 import android.content.Intent;
-import android.os.Environment;
 import android.util.Xml;
 
 import com.labs.dm.bts.entity.DBManager;
@@ -14,6 +13,7 @@ import org.xmlpull.v1.XmlSerializer;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -36,11 +36,9 @@ public class UploadService extends IntentService {
 
             List<Event> events = db.getEvents(recordId);
             try {
-                createXml(record, events);
+                File out = createXml(record, events);
                 Intent xml = new Intent("XML_CREATED");
-                File sd = Environment.getExternalStorageDirectory();
-                String filename = sd.getAbsolutePath() + "/bts.txt";
-                xml.putExtra("path", filename);
+                xml.putExtra("path", out.getPath());
                 sendBroadcast(xml);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -55,17 +53,11 @@ public class UploadService extends IntentService {
 
     }
 
-    void createXml(Record record, List<Event> events) throws IOException {
-        File sd = Environment.getExternalStorageDirectory();
-        String filename = sd.getAbsolutePath() + "/bts.txt";
-
+    private File createXml(Record record, List<Event> events) throws IOException {
+        String filename = getExternalCacheDir() + "/bts_" + record.getName() + ".xml";
         FileOutputStream fos;
 
         File out = new File(filename);
-        if (!out.exists()) {
-            out.createNewFile();
-        }
-
         fos = new FileOutputStream(out);
 
         XmlSerializer serializer = Xml.newSerializer();
@@ -77,7 +69,7 @@ public class UploadService extends IntentService {
         serializer.attribute("", "record", record.getName());
         for (int j = 0; j < events.size(); j++) {
             serializer.startTag(null, "event");
-            serializer.attribute("", "timestamp", String.valueOf(events.get(j).getTimestamp()));
+            serializer.attribute("", "time", new Date(events.get(j).getTimestamp()).toString());
             serializer.startTag(null, "CID");
             serializer.text(String.valueOf(events.get(j).getCell().getCid()));
             serializer.endTag(null, "CID");
@@ -92,5 +84,7 @@ public class UploadService extends IntentService {
         serializer.flush();
 
         fos.close();
+
+        return out;
     }
 }

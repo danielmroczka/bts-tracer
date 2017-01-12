@@ -89,7 +89,6 @@ public class MainActivity extends AppCompatActivity {
                     shareIntent.putExtra(Intent.EXTRA_STREAM, uri);
                     shareIntent.setType("application/octet-stream");
                     Intent in = Intent.createChooser(shareIntent, "Send to...");
-                    //in.putExtra("path", filename);
                     startActivityForResult(in, 123);
                 }
             }
@@ -104,8 +103,11 @@ public class MainActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == 123) {
-            // File file = new File(data.getStringExtra("path"));
-            //  file.delete();
+            for (File file : getExternalCacheDir().listFiles()) {
+                if (!file.isDirectory() && file.getName().endsWith(".xml")) {
+                    file.delete();
+                }
+            }
         }
     }
 

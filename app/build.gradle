@@ -4,7 +4,7 @@ android {
     compileSdkVersion 23
     buildToolsVersion "24.0.2"
     defaultConfig {
-        applicationId "bts.dm.labs.com.bts_tracer"
+        applicationId "com.labs.dm.bts"
         minSdkVersion 16
         targetSdkVersion 23
         versionCode 1
