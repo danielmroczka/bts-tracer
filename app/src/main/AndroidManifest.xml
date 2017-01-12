@@ -5,6 +5,7 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
     <uses-feature
         android:name="android.hardware.telephony"
@@ -31,15 +32,15 @@
         </activity>
 
         <service
-            android:name=".BtsService"
+            android:name=".service.BtsService"
             android:enabled="true"
-            android:exported="true"></service>
-
+            android:exported="true" />
         <service
-            android:name=".UploadService"
+            android:name=".service.UploadService"
             android:enabled="true"
-            android:exported="true"></service>
+            android:exported="true" />
 
+        <activity android:name=".ListActivity"></activity>
     </application>
 
 </manifest>

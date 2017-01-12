@@ -1,10 +1,13 @@
-package com.labs.dm.bts;
+package com.labs.dm.bts.service;
 
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
+
+import com.labs.dm.bts.MainActivity;
+import com.labs.dm.bts.R;
 
 
 public class BtsService extends Service {

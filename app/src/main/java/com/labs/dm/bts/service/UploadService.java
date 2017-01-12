@@ -1,7 +1,6 @@
-package com.labs.dm.bts;
+package com.labs.dm.bts.service;
 
 import android.app.IntentService;
-import android.content.Context;
 import android.content.Intent;
 import android.os.Environment;
 import android.util.Xml;
@@ -29,15 +28,20 @@ public class UploadService extends IntentService {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        long recordId = intent.getLongExtra("recordId", -1);
+        int recordId = intent.getIntExtra("recordId", -1);
         if (recordId >= 0) {
 
             DBManager db = DBManager.getInstance(this);
-            Record record = db.getRecord((int) recordId);
+            Record record = db.getRecord(recordId);
 
-            List<Event> events = db.getEvents((int) recordId);
+            List<Event> events = db.getEvents(recordId);
             try {
                 createXml(record, events);
+                Intent xml = new Intent("XML_CREATED");
+                File sd = Environment.getExternalStorageDirectory();
+                String filename = sd.getAbsolutePath() + "/bts.txt";
+                xml.putExtra("path", filename);
+                sendBroadcast(xml);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -51,29 +55,18 @@ public class UploadService extends IntentService {
 
     }
 
-//    private void send() {
-//        Intent shareIntent = new Intent();
-//        shareIntent.setAction(Intent.ACTION_SEND);
-//        shareIntent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-//
-//        File sd = Environment.getExternalStorageDirectory();
-//
-//        File attachment = new File(sd, selectedFile);
-//        Uri uri = Uri.fromFile(attachment);
-//
-//        shareIntent.putExtra(Intent.EXTRA_STREAM, uri);
-//        shareIntent.setType("application/octet-stream");
-//        getApplicationContext().startActivityForResult(Intent.createChooser(shareIntent, "Send to..."), 123);
-//    }
-
     void createXml(Record record, List<Event> events) throws IOException {
         File sd = Environment.getExternalStorageDirectory();
-        String filename = "bts.txt";
+        String filename = sd.getAbsolutePath() + "/bts.txt";
 
         FileOutputStream fos;
 
-        fos = openFileOutput(filename, Context.MODE_APPEND);
+        File out = new File(filename);
+        if (!out.exists()) {
+            out.createNewFile();
+        }
 
+        fos = new FileOutputStream(out);
 
         XmlSerializer serializer = Xml.newSerializer();
         serializer.setOutput(fos, "UTF-8");
@@ -81,22 +74,16 @@ public class UploadService extends IntentService {
         serializer.setFeature("http://xmlpull.org/v1/doc/features.html#indent-output", true);
 
         serializer.startTag(null, "root");
-
+        serializer.attribute("", "record", record.getName());
         for (int j = 0; j < events.size(); j++) {
-
             serializer.startTag(null, "event");
-
+            serializer.attribute("", "timestamp", String.valueOf(events.get(j).getTimestamp()));
             serializer.startTag(null, "CID");
             serializer.text(String.valueOf(events.get(j).getCell().getCid()));
             serializer.endTag(null, "CID");
             serializer.startTag(null, "LAC");
             serializer.text(String.valueOf(events.get(j).getCell().getLac()));
             serializer.endTag(null, "LAC");
-
-            serializer.startTag(null, "timestamp");
-            serializer.text((String.valueOf(events.get(j).getTimestamp())));
-            serializer.endTag(null, "timestamp");
-
             serializer.endTag(null, "event");
         }
         serializer.endTag(null, "root");
@@ -105,6 +92,5 @@ public class UploadService extends IntentService {
         serializer.flush();
 
         fos.close();
-
     }
 }

@@ -1,9 +1,14 @@
 package com.labs.dm.bts;
 
 import android.Manifest;
+import android.app.AlertDialog;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -19,6 +24,7 @@ import android.telephony.TelephonyManager;
 import android.telephony.cdma.CdmaCellLocation;
 import android.telephony.gsm.GsmCellLocation;
 import android.text.TextUtils;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -26,7 +32,11 @@ import android.widget.TextView;
 
 import com.labs.dm.bts.entity.Cell;
 import com.labs.dm.bts.entity.DBManager;
+import com.labs.dm.bts.entity.Record;
+import com.labs.dm.bts.service.BtsService;
+import com.labs.dm.bts.service.UploadService;
 
+import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -37,6 +47,7 @@ public class MainActivity extends AppCompatActivity {
     private DBManager db;
     private boolean active = true;
     private MyPhoneStateListener listener;
+    private BroadcastReceiver receiver;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,6 +74,39 @@ public class MainActivity extends AppCompatActivity {
         });
         checkPermission();
 
+        receiver = new BroadcastReceiver() {
+
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if ("XML_CREATED".equals(intent.getAction())) {
+                    Intent shareIntent = new Intent();
+                    shareIntent.setAction(Intent.ACTION_SEND);
+                    shareIntent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    String filename = intent.getStringExtra("path");
+                    File attachment = new File(filename);
+                    Uri uri = Uri.fromFile(attachment);
+
+                    shareIntent.putExtra(Intent.EXTRA_STREAM, uri);
+                    shareIntent.setType("application/octet-stream");
+                    Intent in = Intent.createChooser(shareIntent, "Send to...");
+                    //in.putExtra("path", filename);
+                    startActivityForResult(in, 123);
+                }
+            }
+        };
+
+        IntentFilter filter = new IntentFilter();
+        filter.addAction("XML_CREATED");
+        registerReceiver(receiver, filter);
+
+    }
+
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 123) {
+            // File file = new File(data.getStringExtra("path"));
+            //  file.delete();
+        }
     }
 
     private void init() {
@@ -170,11 +214,33 @@ public class MainActivity extends AppCompatActivity {
             return true;
         }
         if (id == R.id.action_upload) {
-            if (recordId >= 0) {
-                Intent serviceIntent = new Intent(MainActivity.this, UploadService.class);
-                serviceIntent.putExtra("recordId", recordId);
-                startService(serviceIntent);
-            }
+
+            List<Record> list = db.getRecords();
+            final Record[] records = list.toArray(new Record[list.size()]);
+
+            AlertDialog.Builder alertDialog = new AlertDialog.Builder(MainActivity.this);
+            LayoutInflater inflater = getLayoutInflater();
+            View convertView = inflater.inflate(R.layout.custom, null);
+            alertDialog.setView(convertView);
+            alertDialog.setTitle("Select Record");
+            RecordAdapter adapter = new RecordAdapter(this, android.R.layout.simple_list_item_1, records);
+
+            alertDialog.setSingleChoiceItems(adapter, -1, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    Record record = records[which];
+                    System.out.println(record);
+
+                    if (record.getId() >= 0) {
+                        Intent serviceIntent = new Intent(MainActivity.this, UploadService.class);
+                        serviceIntent.putExtra("recordId", record.getId());
+                        startService(serviceIntent);
+                    }
+                    dialog.cancel();
+                }
+            });
+            alertDialog.show();
+
             return true;
         }
         return super.onOptionsItemSelected(item);

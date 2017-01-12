@@ -98,6 +98,29 @@ public class DBManager extends SQLiteOpenHelper {
         return getWritableDatabase().insert(Record.NAME, null, content);
     }
 
+    public List<Record> getRecords() {
+        List<Record> list;
+        Cursor cursor = null;
+        try {
+            cursor = getReadableDatabase().rawQuery("SELECT id, name FROM Record", null);
+            list = new ArrayList<>(cursor.getCount());
+            if (cursor.getCount() > 0) {
+                cursor.moveToFirst();
+                while (!cursor.isLast()) {
+                    Record record = new Record(cursor.getString(1));
+                    record.setId(cursor.getInt(0));
+                    list.add(record);
+                    cursor.moveToNext();
+                }
+            }
+        } finally {
+            assert cursor != null;
+            cursor.close();
+        }
+        return list;
+
+    }
+
     public long createCell(Cell cell) {
         ContentValues content = new ContentValues();
         content.put("mcc", cell.getMcc());
